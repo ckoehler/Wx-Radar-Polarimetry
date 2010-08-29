@@ -1,7 +1,9 @@
 clear all; 
 
-% toggle problem 1 stuff
+% toggle problem graphs
 p1 = false;
+p2 = true;
+
 
 
 
@@ -13,6 +15,7 @@ dD=0.2;
 Ct_all=squeeze(dsd_data(:,2,:));
 D_all=squeeze(dsd_data(:,3,:));
 Nd_all=squeeze(dsd_data(:,6,:));
+Vel_all=squeeze(dsd_data(:,9,:));
 %for n=1:len 
   %D=D_all(:,n);
   %Nd=Nd_all(:,n);
@@ -32,10 +35,6 @@ Zd_all = D_all.^6 .* Nd_all;
 % create the time matrix. 481 data points between
 % 7 and 12 o'clock
 t1 = linspace(7,12,481);
-t = zeros(41,481);
-for k=1:41
-  t(k,:) = t1;
-end
 
 % only plot if enabled at the top
 if (p1 == true)
@@ -71,4 +70,52 @@ if (p1 == true)
   xlabel('Time, UTC');
   ylabel('D,mm');
   title('Z(D), log_{10} (mm^6 m^{-3} mm^{-1})');
+end
+
+
+
+% total number concentration
+% = 0th moment
+M_0 = sum(Nd_all .* dD);
+N_t = M_0; 
+
+
+% water content
+% related to 3rd moment
+M_3 = sum(D_all.^3 .* Nd_all .* dD);
+W = pi/6 * 10^-3 .* M_3;
+
+
+% reflectivity factor
+% = 6th moment
+M_6 = sum(D_all.^6 .* Nd_all .* dD);
+Z = M_6;
+
+% rainfall rate
+R = 6e-4 * pi * sum(D_all.^3 .* Vel_all .* Nd_all .* dD);
+
+if(p2 == true)
+  subplot(4,1,1);
+  plot(t1, N_t);
+  xlabel('Time, UTC');
+  ylabel('# (m^{-3})');
+  title('Total Number Concentration');
+
+  subplot(4,1,2);
+  plot(t1, W);
+  xlabel('Time, UTC');
+  ylabel('# (g m^{-3})');
+  title('Water Content');
+
+  subplot(4,1,3);
+  plot(t1, Z);
+  xlabel('Time, UTC');
+  ylabel('(mm^6 m^{-3})');
+  title('Reflectivity factor');
+
+  subplot(4,1,4);
+  plot(t1, R);
+  xlabel('Time, UTC');
+  ylabel('(mm hr^{-1})');
+  title('Rainfall rate');
 end
