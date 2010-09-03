@@ -3,7 +3,8 @@ clear all;
 % toggle problem graphs
 p1 = false;
 p2 = false;
-p3 = true;
+p3 = false;
+p4 = true;
 
 
 
@@ -185,4 +186,14 @@ if(p3 == true)
   title('Z(D)');
   xlabel('Dropsize (mm)');
   ylabel('Z(D) (mm^6 m^{-3} mm^{-1})');
+end
+
+
+% We'll need M_0, 3, and 6
+M_0_exp = sum(D_all .* N_0 .* D_all.^mu .* exp(-lambda .* D_all) .* dD);
+
+
+if(p4 == true)
+
+
 end
