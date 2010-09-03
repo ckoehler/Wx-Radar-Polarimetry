@@ -2,7 +2,8 @@ clear all;
 
 % toggle problem graphs
 p1 = false;
-p2 = true;
+p2 = false;
+p3 = true;
 
 
 
@@ -16,12 +17,6 @@ Ct_all=squeeze(dsd_data(:,2,:));
 D_all=squeeze(dsd_data(:,3,:));
 Nd_all=squeeze(dsd_data(:,6,:));
 Vel_all=squeeze(dsd_data(:,9,:));
-%for n=1:len 
-  %D=D_all(:,n);
-  %Nd=Nd_all(:,n);
-%end
-D=D_all(:,1);
-Nd=Nd_all(:,1);
 
 % Surface distribution A(D)
 Ad_all = pi.*D_all.^2 .* Nd_all;
@@ -95,27 +90,99 @@ Z = M_6;
 R = 6e-4 * pi * sum(D_all.^3 .* Vel_all .* Nd_all .* dD);
 
 if(p2 == true)
+  figure;
   subplot(4,1,1);
   plot(t1, N_t);
   xlabel('Time, UTC');
-  ylabel('# (m^{-3})');
-  title('Total Number Concentration');
+  ylabel('N (m^{-3})');
+  title('Total Number Concentration N');
 
   subplot(4,1,2);
   plot(t1, W);
   xlabel('Time, UTC');
-  ylabel('# (g m^{-3})');
-  title('Water Content');
+  ylabel('W (g m^{-3})');
+  title('Water Content W');
 
   subplot(4,1,3);
   plot(t1, Z);
   xlabel('Time, UTC');
-  ylabel('(mm^6 m^{-3})');
-  title('Reflectivity factor');
+  ylabel('Z (mm^6 m^{-3})');
+  title('Reflectivity factor Z');
 
   subplot(4,1,4);
   plot(t1, R);
   xlabel('Time, UTC');
-  ylabel('(mm hr^{-1})');
-  title('Rainfall rate');
+  ylabel('R (mm hr^{-1})');
+  title('Rainfall rate R');
+end
+
+
+
+% get the rest of the moment we need
+M_2 = sum(D_all .^2 .* Nd_all .* dD);
+M_4 = sum(D_all .^4 .* Nd_all .* dD);
+
+
+%% N(D)
+% exponential model estimator
+lambda = sqrt(12 * M_2 ./ M_4);
+N_0 = M_2 .* lambda.^3 ./ gamma(3);
+
+aSlice = 51;
+Nd_comp = N_0(:,aSlice) .* exp(-lambda(:,aSlice) .* D_all(:,aSlice));
+
+% gamma model estimator
+eta = M_4 .^ 2 ./ M_2 ./ M_6;
+mu = ((7-11.*eta)-(eta.^2 + 14 .* eta + 1).^0.5)/2.*(eta-1);
+lambda2 = (M_2 ./ M_4 .* (mu + 3).*(mu+4)).^0.5;
+N_02 = ( M_2 .* lambda2.^(mu+3))./gamma(mu+3);
+
+Nd_comp_gamma = N_02(:,aSlice) .* D_all(:,aSlice).^mu(:,aSlice) .* exp(-lambda2(:,aSlice) .* D_all(:,aSlice));
+
+
+%% Surface distribution A(D)
+Ad_all_comp = pi.*D_all(:,aSlice).^2 .* Nd_comp;
+Ad_all_comp_gamma = pi.*D_all(:,aSlice).^2 .* Nd_comp_gamma;
+
+% Mass distribution M(D)
+Md_all_comp = pi/6 * D_all(:,aSlice).^3 .* Nd_comp;
+Md_all_comp_gamma = pi/6 * D_all(:,aSlice).^3 .* Nd_comp_gamma;
+
+% Reflectivity distribution Z(D)
+Zd_all_comp = D_all(:,aSlice).^6 .* Nd_comp;
+Zd_all_comp_gamma = D_all(:,aSlice).^6 .* Nd_comp_gamma;
+
+if(p3 == true)
+  figure;
+  subplot(2,2,1);
+  plot(D_all(:,aSlice), Nd_all(:,aSlice), '*', D_all(:,aSlice), Nd_comp, D_all(:,aSlice), Nd_comp_gamma);
+  axis([0 4 0 1300]);
+  legend('N(D)', 'Exponential', 'Gamma');
+  title('N(D)');
+  xlabel('Dropsize (mm)');
+  ylabel('N(D) (m^{-3} mm^{-1})');
+
+  subplot(2,2,2);
+  plot(D_all(:,aSlice), Ad_all(:,aSlice), '*', D_all(:,aSlice), Ad_all_comp, D_all(:,aSlice), Ad_all_comp_gamma);
+  %axis([0 4 0 1300]);
+  legend('A(D)', 'Exponential', 'Gamma');
+  title('A(D)');
+  xlabel('Dropsize (mm)');
+  ylabel('A(D) (mm^2 m^{-3} mm^{-1})');
+  
+  subplot(2,2,3);
+  plot(D_all(:,aSlice), Md_all(:,aSlice), '*', D_all(:,aSlice), Md_all_comp, D_all(:,aSlice), Md_all_comp_gamma);
+  %axis([0 4 0 1300]);
+  legend('M(D)', 'Exponential', 'Gamma');
+  title('M(D)');
+  xlabel('Dropsize (mm)');
+  ylabel('M(D) (g m^{-3} mm^{-1})');
+
+  subplot(2,2,4);
+  plot(D_all(:,aSlice), Zd_all(:,aSlice), '*', D_all(:,aSlice), Zd_all_comp, D_all(:,aSlice), Zd_all_comp_gamma);
+  %axis([0 4 0 1300]);
+  legend('Z(D)', 'Exponential', 'Gamma');
+  title('Z(D)');
+  xlabel('Dropsize (mm)');
+  ylabel('Z(D) (mm^6 m^{-3} mm^{-1})');
 end
