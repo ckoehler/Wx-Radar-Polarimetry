@@ -19,6 +19,11 @@ D_all=squeeze(dsd_data(:,3,:));
 Nd_all=squeeze(dsd_data(:,6,:));
 Vel_all=squeeze(dsd_data(:,9,:));
 
+
+%%%%%%%%%%%%%
+%%% P 1.1 %%%
+%%%%%%%%%%%%%
+
 % Surface distribution A(D)
 Ad_all = pi.*D_all.^2 .* Nd_all;
 
@@ -69,6 +74,9 @@ if (p1 == true)
 end
 
 
+%%%%%%%%%%%%%
+%%% P 1.2 %%%
+%%%%%%%%%%%%%
 
 % total number concentration
 % = 0th moment
@@ -118,6 +126,10 @@ if(p2 == true)
 end
 
 
+
+%%%%%%%%%%%%%
+%%% P 1.3 %%%
+%%%%%%%%%%%%%
 
 % get the rest of the moment we need
 M_2 = sum(D_all .^2 .* Nd_all .* dD);
@@ -187,6 +199,11 @@ if(p3 == true)
   xlabel('Dropsize (mm)');
   ylabel('Z(D) (mm^6 m^{-3} mm^{-1})');
 end
+
+
+%%%%%%%%%%%%%
+%%% P 1.4 %%%
+%%%%%%%%%%%%%
 
 
 % We'll need M_0, 3, and 6
