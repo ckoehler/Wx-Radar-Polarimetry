@@ -4,8 +4,10 @@ clear all;
 p1 = false;
 p2 = false;
 p3 = false;
-p4 = true;
+p4 = false;
 
+% this is really problem 2
+p5 = true;
 
 
 
@@ -207,10 +209,83 @@ end
 
 
 % We'll need M_0, 3, and 6
-M_0_exp = sum(D_all .* N_0 .* D_all.^mu .* exp(-lambda .* D_all) .* dD);
+M_0_fit = N_0 .* lambda2.^-(mu+1) .* gamma(mu + 1);
+M_3_fit = N_0 .* lambda2.^-(mu+4) .* gamma(mu + 4);
+M_6_fit = N_0 .* lambda2.^-(mu+7) .* gamma(mu + 7);
 
+
+% total number concentration
+% = 0th moment
+N_t_fit = M_0_fit; 
+
+
+% water content
+% related to 3rd moment
+W_fit = pi/6 * 10^-3 .* M_3_fit;
+
+
+% reflectivity factor
+% = 6th moment
+Z_fit = M_6_fit;
+
+
+% rainfall rate
+%R_fit = 6e-4 * pi * sum(D_all.^3 .* Vel_all .* Nd_comp_gamma .* dD);
 
 if(p4 == true)
 
+  figure;
+  subplot(3,1,1);
+  plot(t1, N_t, t1, N_t_fit);
+  xlabel('Time, UTC');
+  ylabel('N (m^{-3})');
+  title('Total Number Concentration N');
+  legend('Data','Fit');
+
+  subplot(3,1,2);
+  plot(t1, W, t1, W_fit);
+  xlabel('Time, UTC');
+  ylabel('W (g m^{-3})');
+  title('Water Content W');
+  legend('Data','Fit');
+
+  subplot(3,1,3);
+  plot(t1, Z, t1, Z_fit);
+  xlabel('Time, UTC');
+  ylabel('Z (mm^6 m^{-3})');
+  title('Reflectivity factor Z');
+  legend('Data','Fit');
+
+  %subplot(4,1,4);
+  %plot(t1, R, t1, R_fit);
+  %xlabel('Time, UTC');
+  %ylabel('R (mm hr^{-1})');
+  %title('Rainfall rate R');
+  %legend('Data','Fit');
+
+end
+
+
+
+%%%%%%%%%%%%%%%
+%%% P 2 %%%%%%%
+%%%%%%%%%%%%%%%
+
+% we know:
+% Z = a * R ^ b
+%log(Z) = log(a) + b .* log(R)
+%log(R) = log(c) + d .* log(Z)
+
+x = log(R);
+y = log(Z);
+result = polyfit(x,y,1);
+
+
+if(p5 == true)
+  plot(10*log10(Z), 10*log10(R), '.');
+  xlabel('Reflectivity Z (dbZ)');
+  ylabel('Rainfall rate R (mm hr^{-1})');
+  title('Z-R relation');
+  legend('Data');
 
 end
