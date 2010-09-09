@@ -17,9 +17,9 @@ def e_inf(water_or_ice, temp):
 def e_s(water_or_ice, temp):
   """Calculate epsilon_s for water or ice"""
   if water_or_ice == "water":
-    return 78.54*(1.0-(4.579*np.power(10,-3))*(temp-25.0)+(1.19*np.power(10,-5))*(temp-25)**2 - (2.8*np.power(10,-8)) * (temp - 25)**3)
+    return 78.54*(1.0-4.579e-3*(temp-25.0)+1.19e-5*(temp-25)**2 - 2.8e-8 * (temp - 25)**3)
   else:
-    return 203.168 + 2.5*t + 0.15*t**2
+    return 203.168 + 2.5*temp + 0.15*temp**2
 
 def alpha(water_or_ice, temp):
   """Calculate alpha for water or ice"""
@@ -55,44 +55,90 @@ if __name__ == '__main__' :
   ############## One ################
 
   # wavelength at S band
-  lS = consts.c / (2.8*np.power(10,9))
-  print "wavelength at S-band: %f" % lS
-  print
-  print "dielectric constant for water:"
-
-  for temp in [0,10,20]:
-    print "e real @ %2.0f degrees C: %f" % (temp, e_real("water", lS, temp))    
-    print "e imag @ %2.0f degrees C: %f" % (temp, e_img("water", lS, temp))
-
+  lS = consts.c / (2.8e9)
   # wavelength at C band
-  lC = consts.c / (5.6*np.power(10,9))
-  print "wavelength at C-band: %f" % lC
-  print
-  print "dielectric constant for water:"
-
-  for temp in [0,10,20]:
-    print "e real @ %2.0f degrees C: %f" % (temp, e_real("water", lC, temp))    
-    print "e imag @ %2.0f degrees C: %f" % (temp, e_img("water", lC, temp))
-
+  lC = consts.c / (5.6e9)
   # wavelength at X band
-  lX = consts.c / (10*np.power(10,9))
-  print "wavelength at X-band: %f" % lX
-  print
-  print "dielectric constant for water:"
-
-  for temp in [0,10,20]:
-    print "e real @ %2.0f degrees C: %f" % (temp, e_real("water", lX, temp))    
-    print "e imag @ %2.0f degrees C: %f" % (temp, e_img("water", lX, temp))
-
+  lX = consts.c / (10e9)
   # wavelength at Ka band
-  lKa = consts.c / (35*np.power(10,9))
-  print "wavelength at Ka-band: %f" % lKa
-  print
-  print "dielectric constant for water:"
+  lKa = consts.c / (35e9)
 
-  for temp in [0,10,20]:
-    print "e real @ %2.0f degrees C: %f" % (temp, e_real("water", lKa, temp))
-    print "e imag @ %2.0f degrees C: %f" % (temp, e_img("water", lKa, temp))
+
+  t = range(0,25,1)
+  e_S = e_real("water", lS, np.arange(0,25.0,1))
+  e_C = e_real("water", lC, np.arange(0,25.0,1))
+  e_X = e_real("water", lX, np.arange(0,25.0,1))
+  e_Ka = e_real("water", lKa, np.arange(0,25.0,1))
+
+  fig = plt.figure()
+  ax = fig.add_subplot(1,2,1)
+  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
+  ax.legend(["S-band", "C-band","X-band","Ka-band"], loc="lower center")
+  ax.set_xlabel("Temperature ($^\circ$C)")
+  ax.set_ylabel("Dielectric constant (unitless)")
+  ax.set_title("Dielectric constant, water, real part")
+
+
+  e_S = e_img("water", lS, np.arange(0,25.0,1))
+  e_C = e_img("water", lC, np.arange(0,25.0,1))
+  e_X = e_img("water", lX, np.arange(0,25.0,1))
+  e_Ka = e_img("water", lKa, np.arange(0,25.0,1))
+
+  ax = fig.add_subplot(1,2,2)
+  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
+  ax.legend(["S-band", "C-band","X-band","Ka-band"],loc="upper left")
+  ax.set_xlabel("Temperature ($^\circ$C)")
+  ax.set_ylabel("Dielectric constant (unitless)")
+  ax.set_title("Dielectric constant, water, imaginary part")
+  
+  fig.savefig("P1.png")
+
+
+  ################# TWO ##########################
+
+  t = np.arange(-20.0,0,1)
+  e_S  = e_real("ice", lS, np.arange(-20.0,0,1))
+  e_C  = e_real("ice", lC, np.arange(-20.0,0,1))
+  e_X  = e_real("ice", lX, np.arange(-20.0,0,1))
+  e_Ka = e_real("ice", lKa, np.arange(-20.0,0,1))
+
+  fig = plt.figure()
+  ax = fig.add_subplot(1,2,1)
+  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
+  ax.legend(["S-band", "C-band","X-band","Ka-band"], loc="upper right")
+  ax.set_xlabel("Temperature ($^\circ$C)")
+  ax.set_ylabel("Dielectric constant (unitless)")
+  ax.set_title("Dielectric constant, ice, real part")
+
+
+  e_S  = e_img("ice", lS, np.arange(-20.0,0,1))
+  e_C  = e_img("ice", lC, np.arange(-20.0,0,1))
+  e_X  = e_img("ice", lX, np.arange(-20.0,0,1))
+  e_Ka = e_img("ice", lKa, np.arange(-20.0,0,1))
+
+  ax = fig.add_subplot(1,2,2)
+  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
+  ax.legend(["S-band", "C-band","X-band","Ka-band"],loc="center right")
+  ax.set_xlabel("Temperature ($^\circ$C)")
+  ax.set_ylabel("Dielectric constant (unitless)")
+  ax.set_title("Dielectric constant, ice, imaginary part")
+
+  fig.savefig("P2.png")
+
+
+  ################# THREE ####################
+
+  # snow density
+  rho_s = 0.2
+
+  # melting rate from 0 to 50%
+  gamma_w = np.arange(0,50.0,1)
+
+
+
+  plt.show()
+
+
 
 
 
