@@ -59,6 +59,12 @@ def e_img(water_or_ice, lam, temp):
       (1 + 2*(lambda_s_local/lam)**(1-alpha_local) * np.sin(alpha_local * np.pi/2) + (lambda_s_local/lam)**(2-2*alpha_local))) + sigma(water_or_ice,temp)*lam / (18.8496e10)
 
 
+
+def PS_mixing(e1,e2, f1,f2):
+  """Calculate the effective dielectric constant for two media mixed together"""
+  return [(e1*f2 + e2*f1 - 2*e1*f1 - 2*e2*f2 - (26*e1*e2*f1*f2 + e1**2*f2**2 + e2**2*f1**2 + 4*e1**2*f1**2 + 4*e2**2*f2**2 - 4*f1*f2*e1**2 - 4*f1*f2*e2**2 + 4*e1*e2*f1**2 + 4*e1*e2*f2**2)**(1/2))/(-4*f1 - 4*f2),
+ (e1*f2 + e2*f1 - 2*e1*f1 - 2*e2*f2 + (26*e1*e2*f1*f2 + e1**2*f2**2 + e2**2*f1**2 + 4*e1**2*f1**2 + 4*e2**2*f2**2 - 4*f1*f2*e1**2 - 4*f1*f2*e2**2 + 4*e1*e2*f1**2 + 4*e1*e2*f2**2)**(1/2))/(-4*f1 - 4*f2)]
+
 ############################################################### 
 ######################## MAIN function ########################
 ############################################################### 
@@ -144,12 +150,20 @@ if __name__ == '__main__' :
   # snow density
   rho_s = 0.2
 
+  # ice density
+  rho_i = 0.9167
+
+  # find fractional volumes for dry snow case, i.e. f_w = 0
+  f_i = rho_s / rho_i
+  f_a = 1 - f_i
+
   # melting rate from 0 to 50%
-  gamma_w = np.arange(0,50.0,1)
+  gamma_w = np.linspace(0,50.0,50)
 
+  foo = PS_mixing(1.0,3.17+0.0038j,f_a,f_i)
+  print foo
 
-
-  plt.show()
+  #plt.show()
 
 
 
