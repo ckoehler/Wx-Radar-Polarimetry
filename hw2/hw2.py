@@ -59,11 +59,24 @@ def e_img(water_or_ice, lam, temp):
       (1 + 2*(lambda_s_local/lam)**(1-alpha_local) * np.sin(alpha_local * np.pi/2) + (lambda_s_local/lam)**(2-2*alpha_local))) + sigma(water_or_ice,temp)*lam / (18.8496e10)
 
 
-
+# generated this formula using sympy:
+# solve( , x)
 def PS_mixing(e1,e2, f1,f2):
-  """Calculate the effective dielectric constant for two media mixed together"""
-  return [(e1*f2 + e2*f1 - 2*e1*f1 - 2*e2*f2 - (26*e1*e2*f1*f2 + e1**2*f2**2 + e2**2*f1**2 + 4*e1**2*f1**2 + 4*e2**2*f2**2 - 4*f1*f2*e1**2 - 4*f1*f2*e2**2 + 4*e1*e2*f1**2 + 4*e1*e2*f2**2)**(1/2))/(-4*f1 - 4*f2),
- (e1*f2 + e2*f1 - 2*e1*f1 - 2*e2*f2 + (26*e1*e2*f1*f2 + e1**2*f2**2 + e2**2*f1**2 + 4*e1**2*f1**2 + 4*e2**2*f2**2 - 4*f1*f2*e1**2 - 4*f1*f2*e2**2 + 4*e1*e2*f1**2 + 4*e1*e2*f2**2)**(1/2))/(-4*f1 - 4*f2)]
+  """Calculate the effective dielectric constant for two media mixed together using Polder-van Sanden"""
+
+  # solve the Polder-van Sanden mixing formula by hand for the coefficients
+  # (f1*e1 - f1*x)/(e1 + 2*x) + (f2*e2 - f2*x)/(e2+2*x) = 0
+  a = (-2*f1-2*f2)
+  b = 2*e1*f1 + 2*e2*f2 - f1*e2 - e1*f2
+  c = e1*e2*f1+ e1*e2*f2
+
+  t = np.sqrt(b**2 - 4*a*c)
+  return (-b + t)/(2*a), (-b - t)/(2*a)
+
+def MG_mixing(e1,e2,f):
+  """Maxwell-Garnet mixing formula"""
+  y = (e2-e1)/(e2+2*e1)
+  return (1+2*f*y)*e1/(1-f*y)
 
 ############################################################### 
 ######################## MAIN function ########################
@@ -83,66 +96,33 @@ if __name__ == '__main__' :
   lKa = consts.c / (35e9) * 100
 
 
-  t = np.arange(0,25.0,1)
-  e_S = e_real("water", lS, t)
-  e_C = e_real("water", lC, t)
-  e_X = e_real("water", lX, t)
-  e_Ka = e_real("water", lKa, t)
+  t = (0, 10, 20)
+  l = (lS, lC, lX, lKa)
+  labels = ("S-band ", "C-band ", "X-band ", "Ka-band")
 
-  fig = plt.figure()
-  ax = fig.add_subplot(1,2,1)
-  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
-  ax.legend(["S-band", "C-band","X-band","Ka-band"], loc="lower center")
-  ax.set_xlabel("Temperature ($^\circ$C)")
-  ax.set_ylabel("Dielectric constant (unitless)")
-  ax.set_title("Dielectric constant, water, real part")
+  print("Water")
+  print
 
+  for theT in t:
+    for i in range(4):
+      result = np.complex(e_real("water", l[i], theT), e_img("water", l[i], theT))
+      print "%s @ %2.0f degrees: %s" % (labels[i],theT,result)
 
-  e_S = e_img("water", lS, t)
-  e_C = e_img("water", lC, t)
-  e_X = e_img("water", lX, t)
-  e_Ka = e_img("water", lKa, t)
-
-  ax = fig.add_subplot(1,2,2)
-  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
-  ax.legend(["S-band", "C-band","X-band","Ka-band"],loc="upper left")
-  ax.set_xlabel("Temperature ($^\circ$C)")
-  ax.set_ylabel("Dielectric constant (unitless)")
-  ax.set_title("Dielectric constant, water, imaginary part")
-  
-  fig.savefig("P1.png")
-
+  print
 
   ################# TWO ##########################
 
-  t = np.arange(-20.0,0,1)
-  e_S  = e_real("ice", lS, t)
-  e_C  = e_real("ice", lC, t)
-  e_X  = e_real("ice", lX, t)
-  e_Ka = e_real("ice", lKa, t)
 
-  fig = plt.figure()
-  ax = fig.add_subplot(1,2,1)
-  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
-  ax.legend(["S-band", "C-band","X-band","Ka-band"], loc="upper right")
-  ax.set_xlabel("Temperature ($^\circ$C)")
-  ax.set_ylabel("Dielectric constant (unitless)")
-  ax.set_title("Dielectric constant, ice, real part")
+  t = (-20, -10, 0)
 
+  print("Ice")
+  print
 
-  e_S  = e_img("ice", lS, t)
-  e_C  = e_img("ice", lC, t)
-  e_X  = e_img("ice", lX, t)
-  e_Ka = e_img("ice", lKa, t)
+  for theT in t:
+    for i in range(4):
+      result = np.complex(e_real("ice", l[i], theT), e_img("ice", l[i], theT))
+      print "%s @ %3.0f degrees: %s" % (labels[i],theT,result)
 
-  ax = fig.add_subplot(1,2,2)
-  ax.plot(t, e_S, t, e_C, t, e_X, t, e_Ka)
-  ax.legend(["S-band", "C-band","X-band","Ka-band"],loc="center right")
-  ax.set_xlabel("Temperature ($^\circ$C)")
-  ax.set_ylabel("Dielectric constant (unitless)")
-  ax.set_title("Dielectric constant, ice, imaginary part")
-
-  fig.savefig("P2.png")
 
 
   ################# THREE ####################
@@ -153,17 +133,68 @@ if __name__ == '__main__' :
   # ice density
   rho_i = 0.9167
 
-  # find fractional volumes for dry snow case, i.e. f_w = 0
+  # water density
+  rho_w = 1
+
+  # first dry snow, 0 melting rate
+  gamma_w = 0
+
+  # find fractional volumes 
+  f_w = gamma_w * rho_s / rho_w
   f_i = rho_s / rho_i
-  f_a = 1 - f_i
+  f_a = 1 - f_i - f_w
 
-  # melting rate from 0 to 50%
-  gamma_w = np.linspace(0,50.0,50)
+  # get the dielectric constant for ice and water at 0 deg, S-band again
+  e_i = np.complex(e_real("ice", lS, 0), e_img("ice", lS, 0))
+  e_w = np.complex(e_real("water", lS, 0), e_img("water", lS, 0))
 
-  foo = PS_mixing(1.0,3.17+0.0038j,f_a,f_i)
-  print foo
+  # dielectric constant for dry snow
+  e_s = PS_mixing(1.0,e_i,f_a,f_i)
 
-  #plt.show()
+  # only the second solution makes sense
+  e_s = e_s[1]
+  print
+  print "e_s = %s" % e_s
+  print
+  # melting rate from 0 to 100%
+  gamma_w = np.linspace(0,0.5,100)
+
+  # find fractional volumes.
+  # here we have water and snow, so the fractional volume of snow
+  # is 1 - whatever part water takes up. We don't care what 
+  # the composition of snow is in this case.
+  f_w = gamma_w * rho_s / rho_w
+  f_s = 1 - f_w
+
+  # compute the dielectric constant for melting snow, snow background
+  # and water inclusion
+  e_m1 = MG_mixing(e_w, e_s, f_s)
+  
+  # compute the dielectric constant for melting snow, water background
+  # and snow inclusion
+  e_m2 = MG_mixing(e_s, e_w, f_w)
+
+  # for good measure, calculate the PS mixing ration as well
+  e_m3 = PS_mixing(e_w, e_s, f_w, f_s)
+
+
+  # plot both real and imaginary parts of the result
+  fig = plt.figure(figsize=(15,9));
+  ax = fig.add_subplot(2,1,1)
+  ax.plot(gamma_w * 100, np.real(e_m1), gamma_w * 100, np.real(e_m2), gamma_w * 100, np.real(e_m3[1]))
+  ax.legend(["MG: water/snow", "MG: snow/water", "PS: snow + water"], loc="upper left")
+  ax.set_ylabel("real($\epsilon_e$)")
+  ax.set_title("Dielectric constant, real(top) and imaginary(bottom)")
+
+  ax = fig.add_subplot(2,1,2)
+  ax.plot(gamma_w * 100, np.imag(e_m1), gamma_w * 100, np.imag(e_m2), gamma_w * 100, np.imag(e_m3[1]))
+  ax.legend(["MG: water/snow", "MG: snow/water", "PS: snow + water"], loc="upper left")
+  ax.set_xlabel("% melted")
+  ax.set_ylabel("imag($\epsilon_e$)")
+
+  plt.savefig("P3.png")
+  plt.show()
+
 
 
 
