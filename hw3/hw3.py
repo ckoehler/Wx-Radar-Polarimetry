@@ -31,31 +31,59 @@ sigma_b = np.array(l_sigma_b, dtype=float)
 # numpy array
 
 # these are given
-e = np.complex(41,41)
-lam = 0.03
+e_r = np.complex(41,41)
+e_imag = np.imag(e_r)
 
+# wavelength in mm, to match D
+lam = 30
+a = D / 2
 
+########## Mie #################
 # geometrical cross section:
-sigma_g = np.pi * np.power(D,2)
+sigma_g = np.pi * np.power(a,2)
 
 # efficiency factors
-Q_t = sigma_t / sigma_g;
-Q_s = sigma_s / sigma_g;
-Q_b = sigma_b / sigma_g;
+Q_t = sigma_t / sigma_g
+Q_s = sigma_s / sigma_g
+Q_b = sigma_b / sigma_g
+
+# scattering albedo
+w_0 = sigma_s / sigma_t
+
+
+########## Rayleigh ##############
+k = 2 * np.pi / lam
+
+r_sigma_s = 8 * np.pi * k**4 * a**6 / 3 * np.abs((e_r - 1)/(e_r + 2))**2
+r_sigma_b = 4 * np.pi * k**4 * a**6 * np.abs((e_r - 1)/(e_r + 2))**2
+r_sigma_a = 4/3 * np.pi * k * a**3 * e_imag * np.abs(3/(e_r + 2))**2
+r_sigma_t = r_sigma_a + r_sigma_s
+r_w_0 = r_sigma_s / r_sigma_t
+
+r_Q_t = r_sigma_t / sigma_g
+r_Q_s = r_sigma_s / sigma_g
+r_Q_b = r_sigma_b / sigma_g
 
 
 # plot it all
-fig = plt.figure()
-ax = fig.add_subplot(2,1,1)
-ax.plot(D, sigma_t, D, sigma_s, D, sigma_b, D, sigma_g)
+plt.figure(figsize=(15,9));
+ax = plt.axes()
+ax.plot(D, sigma_t, D, sigma_s, D, sigma_b, D, sigma_g, D, r_sigma_s, D, r_sigma_b)
 ax.set_title("Cross Sections")
 ax.set_xlabel("D (mm)")
-ax.legend(["Mie $\sigma_t$","Mie $\sigma_s$","Mie $\sigma_b$", "Geometrical $\sigma_g$"], loc="upper left")
+ax.set_xscale('log')
+ax.set_yscale('log')
+ax.legend(["Mie $\sigma_t$","Mie $\sigma_s$","Mie $\sigma_b$", "Geometrical $\sigma_g$", "Rayleigh $\sigma_s$", "Rayleigh $\sigma_b$"], loc="upper right")
+plt.savefig("crosssections.png")
 
-ax = fig.add_subplot(2,1,2)
-ax.plot(D, Q_t, D, Q_s, D, Q_b)
+plt.figure(figsize=(15,9));
+ax = plt.axes()
+ax.plot(D, Q_t, D, Q_s, D, Q_b, D, w_0, D, r_Q_t, D, r_Q_s, D, r_Q_b, D, r_w_0)
 ax.set_xlabel("D (mm)")
+ax.set_xscale('log')
+ax.set_yscale('log')
 ax.set_title("Quality Factors")
-ax.legend(["Mie $Q_t$","Mie $Q_s$","Mie $Q_b$"], loc="upper right")
+ax.legend(["Mie $Q_t$","Mie $Q_s$","Mie $Q_b$", "Mie $w_0$","Rayleigh $Q_t$","Rayleigh $Q_s$","Rayleigh $Q_b$", "Rayleigh $w_0$"], loc="upper right")
+plt.savefig("qualityfactors.png")
 
 plt.show()
