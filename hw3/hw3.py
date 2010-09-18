@@ -79,13 +79,15 @@ r_w_0 = r_sigma_s / r_sigma_t
 # cross sections first
 plt.figure(figsize=(15,9));
 ax = plt.axes()
-ax.plot(D, sigma_t, D, sigma_s, D, sigma_b, D, sigma_g, D, r_sigma_s, D, r_sigma_b, D, r_sigma_a, D, r_sigma_t)
+ax.plot(D, sigma_t, D, sigma_s, D, sigma_b, D, sigma_a, D, sigma_g, "-.", D, r_sigma_s, "--", D, r_sigma_b, "--", D, r_sigma_a, "--", D, r_sigma_t, "--")
 ax.set_title("Cross Sections")
 ax.set_xlabel("D (mm)")
 ax.set_ylabel("cross sections $\sigma$")
 ax.set_xscale('log')
 ax.set_yscale('log')
-ax.legend(["Mie $\sigma_t$","Mie $\sigma_s$","Mie $\sigma_b$", "Geometrical $\sigma_g$", "Rayleigh $\sigma_s$", "Rayleigh $\sigma_b$", "Rayleigh $\sigma_a$", "Rayleigh $\sigma_t$"], loc="lower right")
+ax.set_xlim((1e-1, 1e3))
+ax.set_ylim((1e-3, 1e5))
+ax.legend(["Mie $\sigma_t$","Mie $\sigma_s$","Mie $\sigma_b$", "Mie $\sigma_a$", "Geometrical $\sigma_g$", "Rayleigh $\sigma_s$", "Rayleigh $\sigma_b$", "Rayleigh $\sigma_a$", "Rayleigh $\sigma_t$"], loc="lower right")
 plt.savefig("crosssections.png")
 
 # then quality factors
