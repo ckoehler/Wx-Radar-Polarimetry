@@ -85,6 +85,25 @@ L_y = L_y(L_z)
 f_a = scattering_amplitude(k, D, L_y, e_r)
 f_b = scattering_amplitude(k, D, L_z, e_r)
 
+
+############# Do a quick calculation of the amplitude ratios ###############
+r1 = np.abs(f_a / f_b)
+e_r = np.complex(1.3, 0.0004)
+f_as = scattering_amplitude(k, D, L_y, e_r)
+f_bs = scattering_amplitude(k, D, L_z, e_r)
+r2 = np.abs(f_as / f_bs)
+
+plt.figure(figsize=(15,9));
+ax = plt.axes()
+ax.plot(D, r1, D, r2)
+ax.legend(["SAR w/ high $\epsilon_r$", "SAR w/ low $\epsilon_r$"], loc="upper left")
+ax.set_xlabel("D (mm)")
+ax.set_ylabel("ratio")
+#ax.set_yscale('log')
+plt.savefig("ratios.png")
+##################### and done! ###################
+
+
 ############## Plot it all ##############
 plt.figure(figsize=(15,9));
 ax = plt.axes()
