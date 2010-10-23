@@ -148,6 +148,8 @@ plt.savefig("p3-phi.png")
 ######################################
 sigma2 = np.mean(I**2)
 sigma = np.sqrt(sigma2)
+print "sigma = %f " % sigma
+
 I_mean = np.mean(I)
 print "<I> = %f " % I_mean
 
