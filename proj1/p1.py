@@ -4,6 +4,7 @@ import numpy as np
 import scipy.constants as consts
 import matplotlib.pyplot as plt
 import scipy.io as io
+import scipy.interpolate as ip
 
 
 
@@ -11,16 +12,21 @@ def Z(lam, Kw, f, ND, dD):
   """Given Kw, scattering f, ND and dD, computes the reflectivity"""
   return 4*lam**4 / (np.pi**4 * np.abs(Kw)**2) * (np.abs(f)**2 * ND * dD).sum(axis=1)
   
-def Zdr(Zh, Zv):
+def get_Zdr(Zh, Zv):
   """Computes Zdr from the individual axis' reflectivity"""
   return 10*np.log(Zh/Zv)
 
-Ah = 8.686*lam * (np.imag(fa_0) * ND * dD).sum(axis=0)
-Av = 8.686*lam * (np.imag(fb_0) * ND * dD).sum(axis=0)
+def A(lam, f, ND, dD):
+  """Get attenuation for given parameters"""
+  return 8.686*lam * (np.imag(f) * ND * dD).sum(axis=0) * 1e-3
 
-Adp = Ah - Av
+def get_Adp(Ah, Av):
+  """Differential attenuation"""
+  return Ah - Av
 
-Kdp = 180*lam / np.pi * (np.real(dD*fa_0 - dD*fb_0) * ND * dD).sum(axis=1)
+def get_Kdp(lam, fa, fb, ND, dD):
+  """Differential phase"""
+  return 180*lam / np.pi * (np.real(fa - fb) * ND * dD).sum(axis=1) * 1e-3
 
 
 ######## read and massage data #########
@@ -86,20 +92,20 @@ fb_0 = np.array(l_fb_0, dtype=complex)
 ###### givens #######
 f = 2.8e9
 c = consts.c
-
 # convert lambda to mm
 lam = c/f * 1e3
-#t2 = np.linspace(np.min(t),np.max(t),100)
 
+# dielectric constant of water at 10 degrees C
+Kw = 80.2093369315+17.1572908221j
 
 ##### PART 1 #######
 
 ##### calculations #####
 R = np.linspace(1,100,100)
 R = np.tile(R, (R.shape[0],1))
-
 # R is in mm/hr
 R = np.transpose(R)
+
 delta = 4.1*R**(-0.21)
 
 # this D is identical to `size` above
@@ -109,25 +115,16 @@ D,dD = np.linspace(0.08,8,100,retstep=True)
 # each row corresponds to one set of ND as a function of one R
 ND = 8000*np.exp(-delta*D)
 
-# dielectric constant of water at 10 degrees C
-Kw = 80.2093369315+17.1572908221j
-Zh = 4*lam**4 / (np.pi**4 * np.abs(Kw)**2) * (np.abs(fa_0)**2 * ND * dD).sum(axis=1)
-Zh = Z(lam, Kw, fa_0, ND, dD)
-Zv = Z(lam, Kw, fb_0, ND, dD)
-Zv = 4*lam**4 / (np.pi**4 * np.abs(Kw)**2) * (np.abs(fb_0)**2 * ND * dD).sum(axis=1)
-Zdr = 10*np.log(Zh/Zv)
+Zh = Z(lam, Kw, fa_180, ND, dD)
+Zv = Z(lam, Kw, fb_180, ND, dD)
+Zdr = get_Zdr(Zh, Zv)
 
-Ah = 8.686*lam * (np.imag(fa_0) * ND * dD).sum(axis=0)
-Av = 8.686*lam * (np.imag(fb_0) * ND * dD).sum(axis=0)
+Ah = A(lam, fa_0, ND, dD)
+Av = A(lam, fb_0, ND, dD)
 
-Adp = Ah - Av
+Adp = get_Adp(Ah, Av)
 
-Kdp = 180*lam / np.pi * (np.real(dD*fa_0 - dD*fb_0) * ND * dD).sum(axis=1)
-
-#print Ah.shape
-#print Av.shape
-#print Adp.shape
-#print Kdp.shape
+Kdp = get_Kdp(lam, fa_0, fb_0, ND, dD)
 
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
@@ -175,14 +172,134 @@ plt.savefig("1-Kdp.png")
 file = "dsddata_20050513.mat"
 data = io.loadmat(file)
 
+# this is time data, so make a new time array
+t_old = np.linspace(0,100,481)
+t = np.linspace(0,100,100)
+
+# interpolate the data across both axes to make it (100,100)
 D_meas = data['dsd_data'][:, 2, :]
-Nd_meas = data['dsd_data'][:, 5, :]
+D_spline = ip.interp1d(t_old, D_meas, axis=1, kind='cubic')
+D_meas = D_spline(t)
+t2_old = np.linspace(D_meas.min(), D_meas.max(), 41)
+t2 = np.linspace(D_meas.min(), D_meas.max(), 100)
+D_spline = ip.interp1d(t2_old, D_meas, axis=0, kind='cubic')
+D_meas = D_spline(t2)
+
+# interpolate the data across both axes to make it (100,100)
+ND_meas = data['dsd_data'][:, 5, :]
+t_old = np.linspace(ND_meas.min(), ND_meas.max(), 481);
+t = np.linspace(ND_meas.min(), ND_meas.max(), 100);
+#test
+print ND_meas.shape
+fig = plt.figure(figsize=(15,9));
+ax = fig.add_subplot(3,1,1)
+ax.plot(ND_meas)
+#test end
+#ND_spline = ip.interp1d(t_old, ND_meas, axis=1, kind='cubic')
+#ND_meas = ND_spline(t)
+##test
+#ax = fig.add_subplot(3,1,2)
+#ax.plot(ND_meas)
+##test end
+t2_old = np.linspace(ND_meas.min(), ND_meas.max(), 41)
+t2 = np.linspace(ND_meas.min(), ND_meas.max(), 100)
+ND_spline = ip.interp1d(t2_old, ND_meas, axis=0, kind='cubic')
+ND_meas = ND_spline(t2)
+#test
+ax = fig.add_subplot(3,1,3)
+ax.plot(ND_meas)
+plt.show()
+#test end
+
+
 dD_meas = 0.2
 
-
 v = -0.1021 + 4.932*D_meas - 0.9551*D_meas**2 + 0.07934*D_meas**3 - 0.002362*D_meas**4
+print v
 
 R_calc = 6e-4 * np.pi * (D_meas**3 * v * ND_meas * dD_meas).sum(axis=0)
+
+meas_Zh = Z(lam, Kw, fa_180, ND_meas, dD_meas)
+meas_Zv = Z(lam, Kw, fb_180, ND_meas, dD_meas)
+meas_Zdr = get_Zdr(meas_Zh, meas_Zv)
+
+meas_Ah = A(lam, fa_0, ND_meas, dD_meas)
+meas_Av = A(lam, fb_0, ND_meas, dD_meas)
+
+meas_Adp = get_Adp(meas_Ah, meas_Av)
+
+meas_Kdp = get_Kdp(lam, fa_0, fb_0, ND_meas, dD_meas)
+
+
+fig = plt.figure(figsize=(15,9));
+ax = fig.add_subplot(2,1,1)
+ax.plot(t, meas_Zh, t, meas_Zv)
+ax.set_title("$Z_h$ and $Z_v$")
+ax.set_ylabel(r'$mm^6/m^3$')
+ax.legend(["$Z_h$","$Z_v$"], loc="upper left")
+
+ax = fig.add_subplot(2,1,2)
+ax.plot(t, meas_Zdr)
+ax.set_title("$Z_{dr}$")
+ax.set_xlabel("Time")
+ax.set_ylabel(r'dB')
+plt.savefig("2-zhzv.png")
+
+
+fig = plt.figure(figsize=(15,9));
+ax = fig.add_subplot(2,1,1)
+ax.plot(t, meas_Ah, t, meas_Av)
+ax.set_title("$A_h$ and $A_v$")
+ax.set_ylabel(r'$dB/km$')
+ax.legend(["$A_h$","$A_v$"], loc="upper left")
+
+ax = fig.add_subplot(2,1,2)
+ax.plot(t, meas_Adp)
+ax.set_title("$A_{dp}$")
+ax.set_xlabel("Time")
+ax.set_ylabel(r'dB')
+plt.savefig("2-AhAv.png")
+
+
+fig = plt.figure(figsize=(15,9));
+ax = plt.axes()
+ax.plot(t, meas_Kdp)
+ax.set_title("$K_{dp}$")
+ax.set_ylabel(r'$deg/km$')
+ax.set_xlabel("Time")
+plt.savefig("2-Kdp.png")
+
+fig = plt.figure(figsize=(15,9));
+ax = plt.axes()
+ax.plot(t, R_calc)
+ax.set_title("Rainfall rate $R$")
+ax.set_ylabel(r'$mm/hr$')
+ax.set_xlabel("Time")
+plt.savefig("2-R.png")
+
+
+
+## associate rainfall rate and reflectivity
+R_sorting = np.argsort(R_calc)
+print R_calc
+print R_sorting
+Zh_ofR =  meas_Zh[R_sorting]
+Zdr_ofR = meas_Zdr[R_sorting]
+print meas_Zdr
+print Zdr_ofR
+
+fig = plt.figure(figsize=(15,9));
+ax = fig.add_subplot(2,1,1)
+ax.plot(R_calc[R_sorting], Zh_ofR)
+ax.set_title("$Z_h$ as a function of R")
+ax.set_ylabel(r'$mm^6/m^3$')
+
+ax = fig.add_subplot(2,1,2)
+ax.plot(R_calc[R_sorting], Zdr_ofR)
+ax.set_title("$Z_{dr}$ as function of R")
+ax.set_xlabel("rainfall rate R (mm/hr)")
+ax.set_ylabel(r'dB')
+plt.savefig("2-zhzdrofr.png")
 
 
 ##### PART 3 #######
