@@ -191,6 +191,7 @@ R_calc = 6e-4 * np.pi * (D_meas**3 * v * ND_meas * dD_meas).sum(axis=1)
 
 meas_Zh = Z(lam, Kw, fa_180, ND_meas, dD_meas)
 meas_Zv = Z(lam, Kw, fb_180, ND_meas, dD_meas)
+meas_Zv = np.ma.masked_array(meas_Zv, meas_Zv == 0.0)
 meas_Zdr = get_Zdr(meas_Zh, meas_Zv)
 meas_Ah = A(lam, fa_0, ND_meas, dD_meas)
 meas_Av = A(lam, fb_0, ND_meas, dD_meas)
@@ -249,32 +250,49 @@ plt.savefig("2-R.png")
 ## associate rainfall rate and reflectivity
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
+ax.plot(Zh)
 ax.scatter(R_calc, meas_Zh)
 ax.set_title("$Z_h$ as a function of R")
 ax.set_ylabel(r'$Z_h$')
 ax.set_xlabel(r'$R$')
+ax.legend([r'$Z_h$ from MP', r'$Z_h$ from DSD data'], loc='lower right')
 #ax.axis([0,160,0,80])
 ax = fig.add_subplot(2,1,2)
+ax.plot(Zdr)
 ax.scatter(R_calc, meas_Zdr)
 ax.set_title("$Z_{dr}$ as a function of R")
 ax.set_ylabel(r'$Z_{dr}$')
 ax.set_xlabel(r'$R$')
+ax.legend([r'$Z_{dr}$ from MP', r'$Z_{dr}$ from DSD data'], loc='lower right')
 #ax.axis([0,160,0,10])
 plt.savefig("2-zhzdrofr.png")
 
 
 ##### PART 3 #######
+
+# now we just have minutes since 7:00UTC here, same as the DSD data
+koun_t = np.array(np.round((koun_t - 7) * 60), dtype='int');
+
+comp_meas_Zh = meas_Zh[koun_t]
+comp_meas_Zdr = meas_Zdr[koun_t]
+
+
+
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
 ax.plot(koun_Zh)
+ax.plot(comp_meas_Zh)
 ax.set_title("$Z_h$ from KOUN")
 ax.set_xlabel("Time")
 ax.set_ylabel(r'dBZ')
+ax.legend(['KOUN', 'DSD'], loc='upper right')
 
 ax = fig.add_subplot(2,1,2)
 ax.plot(koun_Zdr)
+ax.plot(comp_meas_Zdr)
 ax.set_title("$Z_{dr}$ from KOUN")
 ax.set_xlabel("Time")
 ax.set_ylabel(r'dB')
+ax.legend(['KOUN', 'DSD'], loc='upper right')
 plt.savefig("3-koun.png")
 #plt.show()
