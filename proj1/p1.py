@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+import datetime as dt
 import scipy.constants as consts
 import matplotlib.pyplot as plt
 import scipy.io as io
@@ -18,8 +19,6 @@ def get_Zdr(Zh, Zv):
 
 def A(lam, f, ND, dD):
   """Get attenuation for given parameters"""
-  print "ND"
-  print ND.shape
   return 8.686*lam * (np.imag(f) * ND * dD).sum(axis=1) * 1e-3
 
 def get_Adp(Ah, Av):
@@ -171,7 +170,8 @@ plt.savefig("1-Kdp.png")
 file = "dsddata_20050513.mat"
 data = io.loadmat(file)
 
-# this is time data, so make a new time array
+# define old and new length x values to
+# interpolate over next.
 x = np.linspace(1,41,41)
 xx = np.linspace(1,41,100)
 
@@ -185,10 +185,13 @@ ND_meas = np.transpose(data['dsd_data'][:, 5, :])
 s = ip.interp1d(x, ND_meas, axis=1, kind='cubic')
 ND_meas = s(xx)
 
+# calculate v and R with given data
 dD_meas = 0.2
 v = -0.1021 + 4.932*D_meas - 0.9551*D_meas**2 + 0.07934*D_meas**3 - 0.002362*D_meas**4
 R_calc = 6e-4 * np.pi * (D_meas**3 * v * ND_meas * dD_meas).sum(axis=1)
 
+# use what we have now and get the radar variables, as we did in
+# part 1.
 meas_Zh = Z(lam, Kw, fa_180, ND_meas, dD_meas)
 meas_Zv = Z(lam, Kw, fb_180, ND_meas, dD_meas)
 meas_Zv = np.ma.masked_array(meas_Zv, meas_Zv == 0.0)
@@ -198,7 +201,14 @@ meas_Av = A(lam, fb_0, ND_meas, dD_meas)
 meas_Adp = get_Adp(meas_Ah, meas_Av)
 meas_Kdp = get_Kdp(lam, fa_0, fb_0, ND_meas, dD_meas)
 
+# build the time x axis values so it shows time instead of 
+# sample indeces.
 t = np.linspace(0,100,481)
+t0 = dt.datetime.combine(dt.date.today(), dt.time(7,0,0))
+delta_t = dt.timedelta(minutes=1)
+t = t0 + np.arange(meas_Zh.shape[0])*delta_t
+
+
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
 ax.plot(t, meas_Zh, t, meas_Zv)
@@ -209,7 +219,7 @@ ax.legend(["$Z_h$","$Z_v$"], loc="upper right")
 ax = fig.add_subplot(2,1,2)
 ax.plot(t, meas_Zdr)
 ax.set_title("$Z_{dr}$")
-ax.set_xlabel("Time")
+ax.set_xlabel("Time (UTC)")
 ax.set_ylabel(r'dB')
 plt.savefig("2-zhzv.png")
 
@@ -224,25 +234,25 @@ ax.legend(["$A_h$","$A_v$"], loc="upper left")
 ax = fig.add_subplot(2,1,2)
 ax.plot(t, meas_Adp)
 ax.set_title("$A_{dp}$")
-ax.set_xlabel("Time")
+ax.set_xlabel("Time (UTC)")
 ax.set_ylabel(r'dB')
 plt.savefig("2-AhAv.png")
 
 
 fig = plt.figure(figsize=(15,9));
 ax = plt.axes()
-ax.plot(meas_Kdp)
+ax.plot(t, meas_Kdp)
 ax.set_title("$K_{dp}$")
 ax.set_ylabel(r'$deg/km$')
-ax.set_xlabel("Time")
+ax.set_xlabel("Time (UTC)")
 plt.savefig("2-Kdp.png")
 
 fig = plt.figure(figsize=(15,9));
 ax = plt.axes()
-ax.plot(R_calc)
+ax.plot(t, R_calc)
 ax.set_title("Rainfall rate $R$")
 ax.set_ylabel(r'$mm/hr$')
-ax.set_xlabel("Time")
+ax.set_xlabel("Time (UTC)")
 plt.savefig("2-R.png")
 
 
@@ -250,21 +260,20 @@ plt.savefig("2-R.png")
 ## associate rainfall rate and reflectivity
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
-ax.plot(Zh)
-ax.scatter(R_calc, meas_Zh)
-ax.set_title("$Z_h$ as a function of R")
-ax.set_ylabel(r'$Z_h$')
+ax.plot(10*np.log(Zh))
+ax.scatter(R_calc, 10*np.log(meas_Zh))
+ax.set_title("$Z_H$ as a function of R")
+ax.set_ylabel(r'$Z_H/dB$')
 ax.set_xlabel(r'$R$')
-ax.legend([r'$Z_h$ from MP', r'$Z_h$ from DSD data'], loc='lower right')
-#ax.axis([0,160,0,80])
+ax.legend([r'$Z_H$ from MP', r'$Z_H$ from DSD data'], loc='lower right')
+
 ax = fig.add_subplot(2,1,2)
 ax.plot(Zdr)
 ax.scatter(R_calc, meas_Zdr)
 ax.set_title("$Z_{dr}$ as a function of R")
-ax.set_ylabel(r'$Z_{dr}$')
+ax.set_ylabel(r'$Z_{dr}/dB$')
 ax.set_xlabel(r'$R$')
 ax.legend([r'$Z_{dr}$ from MP', r'$Z_{dr}$ from DSD data'], loc='lower right')
-#ax.axis([0,160,0,10])
 plt.savefig("2-zhzdrofr.png")
 
 
@@ -273,25 +282,30 @@ plt.savefig("2-zhzdrofr.png")
 # now we just have minutes since 7:00UTC here, same as the DSD data
 koun_t = np.array(np.round((koun_t - 7) * 60), dtype='int');
 
+# get the corresponding values for the same times from our
+# measured data.
 comp_meas_Zh = meas_Zh[koun_t]
 comp_meas_Zdr = meas_Zdr[koun_t]
 
+# build the x axis to display times, starting at 7:00
+t0 = dt.datetime.combine(dt.date.today(), dt.time(7,0,0))
+delta_t = dt.timedelta(minutes=1)
+x = t0 + np.arange(comp_meas_Zh.shape[0])*delta_t
 
 
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
-ax.plot(koun_Zh)
-ax.plot(comp_meas_Zh)
+ax.plot(x, koun_Zh)
+ax.plot(x, comp_meas_Zh)
 ax.set_title("$Z_h$ from KOUN")
-ax.set_xlabel("Time")
 ax.set_ylabel(r'dBZ')
 ax.legend(['KOUN', 'DSD'], loc='upper right')
 
 ax = fig.add_subplot(2,1,2)
-ax.plot(koun_Zdr)
-ax.plot(comp_meas_Zdr)
+ax.plot(x, koun_Zdr)
+ax.plot(x, comp_meas_Zdr)
 ax.set_title("$Z_{dr}$ from KOUN")
-ax.set_xlabel("Time")
+ax.set_xlabel("Time (UTC)")
 ax.set_ylabel(r'dB')
 ax.legend(['KOUN', 'DSD'], loc='upper right')
 plt.savefig("3-koun.png")
