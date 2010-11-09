@@ -121,14 +121,111 @@ def calcFuzzies():
 
 
 data = io.loadmat('res.mat')
-#fig = plt.figure(figsize=(15,9));
-#ax = plt.axes()
-#ax.plot(foo)
-#ax.plot(testdata)
-##ax.set_title("$K_{dp}$")
-##ax.set_ylabel(r'$deg/km$')
-##ax.set_xlabel("rainfall rate R (mm/hr)")
+
+dim0 = data['GC'].shape[0]
+dim1 = data['GC'].shape[1]
+
+# 5 regions to compute for
+idx0 = 110000 / 250
+idx1 = 151000 / 250
+idx2 = 180000 / 250
+idx3 = 238000 / 250
+idx4 = dim1
+
+
+
+# first, 0-110km, 6 products
+first = np.zeros((10, dim0, dim1))
+first[0] = data['GC']
+first[1] = data['BS']
+first[2] = np.zeros((dim0,dim1))
+first[3] = np.zeros((dim0,dim1))
+first[4] = np.zeros((dim0,dim1))
+first[5] = np.zeros((dim0,dim1))
+first[6] = data['BD']
+first[7] = data['RA']
+first[8] = data['HR']
+first[9] = data['RH']
+
+first = first[:,:,0:idx0]
+first_res = np.argmax(first, axis=0)
+
+# second, 110km-151km, 8 products
+second = np.zeros((10, dim0, dim1))
+second[0] = data['GC']
+second[1] = data['BS']
+second[2] = np.zeros((dim0,dim1)) # DS
+second[3] = data['WS']
+second[4] = np.zeros((dim0,dim1)) # CR
+second[5] = data['GR']
+second[6] = data['BD']
+second[7] = data['RA']
+second[8] = data['HR']
+second[9] = data['RH']
+
+second = second[:,:,idx0:idx1]
+second_res = np.argmax(second, axis=0)
+
+# third, 110km-151km, 8 products
+third = np.zeros((10, dim0, dim1))
+third[0] = data['GC']
+third[1] = data['BS']
+third[2] = data['DS'] 
+third[3] = data['WS']
+third[4] = np.zeros((dim0,dim1)) # CR
+third[5] = data['GR']
+third[6] = data['BD']
+third[7] = np.zeros((dim0, dim1)) # RA
+third[8] = np.zeros((dim0, dim1)) # HR
+third[9] = data['RH']
+
+third = third[:,:,idx1:idx2]
+third_res = np.argmax(third, axis=0)
+
+# fourth, 110km-151km, 8 products
+fourth = np.zeros((10, dim0, dim1))
+fourth[0] = data['GC']
+fourth[1] = data['BS']
+fourth[2] = data['DS'] 
+fourth[3] = data['WS']
+fourth[4] = data['CR']
+fourth[5] = data['GR']
+fourth[6] = data['BD']
+fourth[7] = np.zeros((dim0, dim1)) # RA
+fourth[8] = np.zeros((dim0, dim1)) # HR
+fourth[9] = data['RH']
+
+fourth = fourth[:,:,idx2:idx3]
+fourth_res = np.argmax(fourth, axis=0)
+
+
+# fifth, 110km-151km, 8 products
+fifth = np.zeros((10, dim0, dim1))
+fifth[0] = np.zeros((dim0, dim1)) # GC
+fifth[1] = np.zeros((dim0, dim1)) # BS
+fifth[2] = data['DS'] 
+fifth[3] = np.zeros((dim0, dim1)) # WS
+fifth[4] = data['CR']
+fifth[5] = data['GR']
+fifth[6] = np.zeros((dim0, dim1)) # BD
+fifth[7] = np.zeros((dim0, dim1)) # RA
+fifth[8] = np.zeros((dim0, dim1)) # HR
+fifth[9] = data['RH']
+
+fifth = fifth[:,:,idx3:idx4]
+fifth_res = np.argmax(fifth, axis=0)
+
+
+total = np.concatenate((first_res, second_res, third_res, fourth_res, fifth_res), axis=1)
+print total.shape
+fig = plt.figure(figsize=(15,9));
+ax = plt.axes()
+cax = ax.imshow(total, interpolation='hanning')
+fig.colorbar(cax)
+#ax.set_title("$K_{dp}$")
+#ax.set_ylabel(r'$deg/km$')
+#ax.set_xlabel("rainfall rate R (mm/hr)")
 #ax.legend(['fuzzy', 'Zh'])
-##ax.set_yscale('log')
+#ax.set_yscale('log')
 #plt.savefig("test.png")
-##plt.show()
+plt.show()
