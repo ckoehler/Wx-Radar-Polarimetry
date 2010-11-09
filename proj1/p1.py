@@ -11,11 +11,11 @@ import scipy.interpolate as ip
 
 def Z(lam, Kw, f, ND, dD):
   """Given Kw, scattering f, ND and dD, computes the reflectivity"""
-  return 4*lam**4 / (np.pi**4 * np.abs(Kw)**2) * (np.abs(f)**2 * ND * dD).sum(axis=1)
+  return 4*lam**4 / (np.pi**4 * np.abs(Kw)**2) * (np.abs(f)**2 * ND * dD).sum(axis=1) 
   
 def get_Zdr(Zh, Zv):
   """Computes Zdr from the individual axis' reflectivity"""
-  return 10*np.log(Zh/Zv)
+  return 10*np.log10(Zh/Zv)
 
 def A(lam, f, ND, dD):
   """Get attenuation for given parameters"""
@@ -95,9 +95,9 @@ f = 2.8e9
 c = consts.c
 # convert lambda to mm
 lam = c/f * 1e3
-
 # dielectric constant of water at 10 degrees C
-Kw = 80.2093369315+17.1572908221j
+er = 80.2093369315+17.1572908221j
+Kw = (er - 1)/(er + 2)
 
 ##### PART 1 #######
 
@@ -112,7 +112,6 @@ delta = 4.1*R**(-0.21)
 # this D is identical to `size` above
 # D is in mm
 D,dD = np.linspace(0.08,8,100,retstep=True)
-
 # each row corresponds to one set of ND as a function of one R
 ND = 8000*np.exp(-delta*D)
 
@@ -260,8 +259,8 @@ plt.savefig("2-R.png")
 ## associate rainfall rate and reflectivity
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
-ax.plot(10*np.log(Zh))
-ax.scatter(R_calc, 10*np.log(meas_Zh))
+ax.plot(10*np.log10(Zh))
+ax.scatter(R_calc, 10*np.log10(meas_Zh))
 ax.set_title("$Z_H$ as a function of R")
 ax.set_ylabel(r'$Z_H/dB$')
 ax.set_xlabel(r'$R$')
