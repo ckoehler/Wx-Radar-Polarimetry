@@ -83,6 +83,8 @@ fb_180 = np.array(l_fb_180, dtype=complex)
 fa_0 = np.array(l_fa_0, dtype=complex)
 fb_0 = np.array(l_fb_0, dtype=complex)
 
+np.savez('fwscamp', fapi=fa_180, fbpi=fb_180, fa0=fa_0, fb0=fb_0)
+
 # now we've got all the data we need in a nice set of
 # numpy arrays
 

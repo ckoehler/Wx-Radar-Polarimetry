@@ -9,15 +9,17 @@ import scipy.io as io
 import peach.fuzzy.mf as mf
 
 
-def f1(Z):
+np.set_printoptions(threshold=2000)
+
+def calc_f1(Z):
   """compute f1 to be used in the MF"""
   return -0.5 + 2.5e-3 * Z + 7.5e-4 * Z**2
 
-def f2(Z):
+def calc_f2(Z):
   """compute f2 to be used in the MF"""
   return 0.68 - 4.81e-2 * Z + 2.92e-3 * Z**2
 
-def f3(Z):
+def calc_f3(Z):
   """compute f3 to be used in the MF"""
   return 1.42 + 6.67e-2 * Z + 4.85e-4 * Z**2
 
@@ -29,9 +31,12 @@ def calcFuzzies():
   data       = data['RawData'][0,0]
 
   Az         = data['Az']
-  Zh         = np.ma.masked_array(data['Zh'], data['Zh'] < 0)
-  Zdr        = np.ma.masked_array(data['Zdr'], data['Zdr'] < 0)
-  rhoHV      = np.ma.masked_array(data['RhoHV'], data['RhoHV'] < 0)
+  Zh_cond    = (data['Zh'] == -99900.0) | (data['Zh'] == -32768.0)
+  Zdr_cond   = (data['Zdr'] == -99900) | (data['Zdr'] == -32768)
+  rhoHV_cond = (data['RhoHV'] == -99900) | (data['RhoHV'] == -32768)
+  Zh         = np.ma.masked_array(data['Zh'], Zh_cond )
+  Zdr        = np.ma.masked_array(data['Zdr'], Zdr_cond)
+  rhoHV      = np.ma.masked_array(data['RhoHV'], rhoHV_cond)
   #phiDP     = data['PhiDP']
   #Kdp       = data['Kdp']
   HydroClass = data['HydroClass']
@@ -50,9 +55,9 @@ def calcFuzzies():
   #print gatewidth.shape
   #print beamwidth.shape
 
-  f1 = f1(Zh)
-  f2 = f2(Zh)
-  f3 = f3(Zh)
+  f1 = calc_f1(Zh)
+  f2 = calc_f2(Zh)
+  f3 = calc_f3(Zh)
 
   GC_Z = mf.Trapezoid(15, 20, 70, 80)(Zh)
   BS_Z = mf.Trapezoid(5, 10, 20, 30)(Zh)
@@ -230,6 +235,8 @@ fifth_res = np.argmax(fifth, axis=0)
 
 total = np.concatenate((first_res, second_res, third_res, fourth_res, fifth_res), axis=1)
 
+io.savemat('total.mat', {'total' : total})
+
 # convert our polar info into cartesian
 el = 0.5
 el_rad = el/180*np.pi
@@ -289,4 +296,4 @@ ax.set_title("$Z_H \ (dBZ)$, El=$0.5^{\circ}$")
 ax.set_ylabel(r'meridonal distance/km')
 ax.set_xlabel("zonal distance/km")
 plt.savefig("zdr.png")
-plt.show()
+#plt.show()
