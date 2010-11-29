@@ -62,18 +62,22 @@ def get_N0_cg(Zh,Kw,lam,f,ND,dD):
   b = (np.abs(f)**2 * ND * dD).sum(axis=0)
   c = Zh * a
   d = b**-1
+  print "abcd"
+  print a.shape
+  print b.shape
+  print c.shape
+  print d.shape
   return c * d
 
 def nthMoment(D,Nd, dD,n):
-  """docstring for nthMoment"""
-  return ((D**n) * Nd * dD).sum(axis=0)
+  """calculate the nth-moment of the DSD"""
+  return ((D**n) * Nd * dD).sum(axis=1)
 
 def RainRate(D, Nd, Vd, dD) :
-    # units are mm*hr^-1
     return 6e-4 * np.pi * nthMoment(D, Vd*Nd, dD, 3)
 
 def Dm(D,ND,dD):
-  """volume weighted diamter"""
+  """volume weighted diameter"""
   return nthMoment(D,ND,dD,4) / nthMoment(D,ND,dD,3)
 
 # get az, zh, abd zdr
@@ -90,6 +94,7 @@ fb_pi = data['fbpi']
 fa_0  = data['fa0']
 fb_0  = data['fb0']
 
+# this is the classifcation result from the prev. project
 data  = io.loadmat('total.mat')
 total = data['total']
 
@@ -126,8 +131,8 @@ N0 = get_N0(Zh.flatten(), Kw, lam, fa_pi, ND, dD)
 N0 = np.ma.masked_array(N0, N0 <= -100)
 
 #plot(caplam1d, Zdr_lambda,"$Z_{dr}$ - $\Lambda$ relation, Exp model",ylabel='$Z_{dr}$ (dB)',xlabel="$\Lambda$ ($mm^{-1}$)",figname="zdr-lam-exp.png")
-#hist(all_caplam.compressed(),1000, "$\Lambda$ for all $Z_{dr}$", "$\Lambda$", "Number", "all-caplam.png", axis=[-5,10,0,6500])
-#hist(N0.compressed(),300, "$N_0$ for all $Z_{dr}$", "$N_0$", "Number", "N0.png")
+#hist(all_caplam.compressed(),1000, "$\Lambda$ distribution for given data, Exp. model", "$\Lambda$", "Number", "all-caplam.png", axis=[-5,10,0,6500])
+#hist(N0.compressed(),300, "$N_0$ distribution for given data, Exp. model", "$N_0$", "Number", "N0.png")
 
 # now C-G ND
 mu = -0.0201 * caplam1d**2 + 0.902*caplam1d - 1.718
@@ -144,8 +149,8 @@ N0 = get_N0_cg(Zh.flatten(), Kw, lam, fa_pi, ND, dD)
 N0 = np.ma.masked_array(N0, N0 <= -100)
 
 #plot(caplam1d, Zdr_lambda, "$Z_{dr}$ - $\Lambda$ relation, C-G model",ylabel='$Z_{dr}$ (dB)', xlabel="$\Lambda$ ($mm^{-1}$)",figname="zdr-lam-cg.png")
-#hist(all_caplam.compressed(),1000, "$\Lambda$ for all $Z_{dr}$", "$\Lambda$", "Number", "all-caplam-cg.png", axis=[2,8,0,3000])
-#hist(N0.compressed(),300, "$N_0$ for all $Z_{dr}$", "$N_0$", "Number", "N0-cg.png")
+#hist(all_caplam.compressed(),1000, "$\Lambda$ distribution for given data, C-G model", "$\Lambda$", "Number", "all-caplam-cg.png", axis=[1,10,0,8000])
+#hist(N0.compressed(),300, "$N_0$ distribution for given data, C-G model", "$N_0$", "Number", "N0-cg.png")
 
 
 # Rainfall rate and D_m
@@ -190,15 +195,24 @@ koun_Zh = np.array(l_Zh, dtype=float)
 koun_Zdr = np.array(l_Zdr, dtype=float)
 
 
+D,dD     = np.linspace(0.08,8,43,retstep=True)
+D = np.tile(D, (100,1))
+
+# figure out Lambda for each given data point from KOUN
 fitted_Zdr = fit(np.abs(koun_Zdr.flatten()))[::-1]
 all_caplam = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -10) 
+mu = -0.0201 * all_caplam**2 + 0.902*all_caplam - 1.718
 
-ND = D**mu * np.exp(-caplam1d * D)
-N0 = get_N0_cg(koun_Zh.flatten(), Kw, lam, fa_pi, ND, dD)
+# do the same for N0 and mask out very negative values
+ND = np.transpose(D**mu * np.exp(-all_caplam * D))
+N0 = get_N0_cg(koun_Zh, Kw, lam, fa_pi, ND, dD)
 N0 = np.ma.masked_array(N0, N0 <= -100)
 
-hist(all_caplam.compressed(),1000, "$\Lambda$ for all $Z_{dr}$", "$\Lambda$", "Number", "2-Lambda.png")#, axis=[2,8,0,3000])
-hist(N0.compressed(),300, "$N_0$ for all $Z_{dr}$", "$N_0$", "Number", "2-N0.png")
+# These data are a little too sparse to do a meaningful histogram of, so just give a list
+#print "Lambda values for KOUN data"
+#print all_caplam
+#print "N_0 values for KOUN data"
+#print N0
 
 # DSD data
 # get measured DSD data
@@ -220,29 +234,48 @@ ND_meas = np.transpose(data['dsd_data'][:, 5, :])
 s = ip.interp1d(x, ND_meas, axis=1, kind='cubic')
 ND_meas = s(xx)
 
-# calculate v and R with given data
+# get requested products for the DSD measured data
 dD_meas = 0.2
-v = -0.1021 + 4.932*D_meas - 0.9551*D_meas**2 + 0.07934*D_meas**3 - 0.002362*D_meas**4
-R_calc = 6e-4 * np.pi * (D_meas**3 * v * ND_meas * dD_meas).sum(axis=1)
-
-ND = D**mu * np.exp(-caplam * D)
-D = np.tile(D, (D.shape[0],1))
-print D_meas.shape
-print ND_meas.shape
-print D.shape
-print ND.shape
+v_meas = -0.1021 + 4.932*D_meas - 0.9551*D_meas**2 + 0.07934*D_meas**3 - 0.002362*D_meas**4
+R_calc = 6e-4 * np.pi * (D_meas**3 * v_meas * ND_meas * dD_meas).sum(axis=1)
 Dt_meas = nthMoment(D_meas, ND_meas, dD_meas, 0)
-Dt_retr = nthMoment(D, ND, dD, 0)
-print Dt_meas.shape
-print Dt_retr.shape
+Dm_meas = Dm(D_meas, ND_meas, dD)
 
+# repeat for the retrieved data from the radar
+ND = N0 * D**mu * np.exp(-all_caplam * D)
+v = -0.1021 + 4.932*D- 0.9551*D**2 + 0.07934*D**3 - 0.002362*D**4
+R_retr = 6e-4 * np.pi * (D**3 * v * ND* dD).sum(axis=1)
+Dt_retr = nthMoment(D, ND, dD, 0)
+Dm_retr = Dm(D, ND, dD)
+
+
+# plot side by side
+fig = plt.figure(figsize=(15,9));
+ax = plt.axes()
+ax.plot(Dt_meas)
+ax.plot(Dt_retr)
+ax.legend(["meas", 'retr'])
+ax.set_title("Total Number Concentration")
+ax.set_xlabel("t")
+ax.set_ylabel("$N_t$ (#)")
+plt.savefig("2-Dt.png")
 
 fig = plt.figure(figsize=(15,9));
 ax = plt.axes()
-ax.plot(xx, Dt_meas)
-ax.plot(xx, Dt_retr)
+ax.plot(R_calc)
+ax.plot(R_retr)
 ax.legend(["meas", 'retr'])
-ax.set_title("Dt")
+ax.set_title("Rainfall rate")
 ax.set_xlabel("t")
-ax.set_ylabel("Dt")
-plt.savefig("2-Dt.png")
+ax.set_ylabel("R ($mm*h^-1$)")
+plt.savefig("2-R.png")
+
+fig = plt.figure(figsize=(15,9));
+ax = plt.axes()
+ax.plot(Dm_meas)
+ax.plot(Dm_retr)
+ax.legend(["meas", 'retr'])
+ax.set_title("mean volume diameter")
+ax.set_xlabel("t")
+ax.set_ylabel("$D_m$ (mm)")
+plt.savefig("2-Dm.png")
