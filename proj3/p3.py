@@ -264,12 +264,11 @@ Lambda1d = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -10)
 Lambda = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -10) 
 mu1d = -0.0201 * Lambda**2 + 0.902*Lambda - 1.718
 Lambda = (np.tile(Lambda, (100,1))).T
-mu = -0.0201 * Lambda**2 + 0.902*Lambda - 1.718
 print Lambda
 #print D.shape
 
 # do the same for N0 and mask out very negative values
-ND = D**mu * np.exp(-Lambda * D)
+ND = np.exp(-Lambda * D)
 N0 = get_N0(koun_Zh, Kw, lam, fa_pi, ND, dD)
 N0 = np.ma.masked_array(N0, N0 <= -100)
 
@@ -310,8 +309,8 @@ Dt_meas = nthMoment(D_meas, ND_meas, dD_meas, 0)
 Dm_meas = Dm(D_meas, ND_meas, dD)
 
 # repeat for the retrieved data from the radar
-a = (N0 * (D**mu).T).T
-ND = a * np.exp(-Lambda * D)
+#a = (N0 * (D**mu).T).T
+ND = N0 * np.exp(-Lambda * D)
 v = -0.1021 + 4.932*D- 0.9551*D**2 + 0.07934*D**3 - 0.002362*D**4
 R_retr = RainRate(D, ND, v, dD)
 Dt_retr = nthMoment(D, ND, dD, 0)
