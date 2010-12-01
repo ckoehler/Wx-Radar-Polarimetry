@@ -152,13 +152,13 @@ exp_Lambda = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -100)
 #hist(exp_N0.compressed(),300, "$N_0$ distribution for given data, Exp. model", "$N_0$", "Number", "N0.png")
 
 # now C-G ND. Except for another parameter mu, it's the same as above.
-mu = -0.0201 * caplam1d**2 + 0.902*caplam1d - 1.718
-ND = D**mu * np.exp(-caplam * D)
-Zdr_lambda = get_Zdr_lambda(ND, dD, fa_pi, fb_pi)
-sort_order = np.argsort(Zdr_lambda)
-fit = ip.InterpolatedUnivariateSpline(Zdr_lambda[sort_order], caplam1d[sort_order])
-fitted_Zdr = fit(np.abs(Zdr.flatten()))[::-1]
-cg_Lambda = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -10) 
+#mu = -0.0201 * caplam1d**2 + 0.902*caplam1d - 1.718
+#ND = D**mu * np.exp(-caplam * D)
+#Zdr_lambda = get_Zdr_lambda(ND, dD, fa_pi, fb_pi)
+#sort_order = np.argsort(Zdr_lambda)
+#fit = ip.InterpolatedUnivariateSpline(Zdr_lambda[sort_order], caplam1d[sort_order])
+#fitted_Zdr = fit(np.abs(Zdr.flatten()))[::-1]
+#cg_Lambda = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -10) 
 
 
 #cg_Lambda = np.tile(cg_Lambda, (100,1))
@@ -252,26 +252,21 @@ koun_t = np.array(np.round((koun_t - 7) * 60), dtype='int');
 koun_Zh = 10**(np.array(l_Zh, dtype=float)/10)
 koun_Zdr = np.array(l_Zdr, dtype=float)
 # just use some single example values
-#koun_Zh = 10**(40/10)
-#koun_Zdr = 2
 
 D,dD     = np.linspace(0.08,8,100,retstep=True)
 
 # figure out Lambda for each given data point from KOUN
 fitted_Zdr = fit(np.abs(koun_Zdr))
 #fitted_Zdr = fit(np.abs(koun_Zdr))[::-1]
-Lambda1d = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -10) 
 Lambda = np.ma.masked_array(fitted_Zdr, fitted_Zdr <= -10) 
-mu1d = -0.0201 * Lambda**2 + 0.902*Lambda - 1.718
-Lambda = (np.tile(Lambda, (100,1))).T
 print Lambda
+Lambda = (np.tile(Lambda, (100,1))).T
 #print D.shape
 
 # do the same for N0 and mask out very negative values
 ND = np.exp(-Lambda * D)
 N0 = get_N0(koun_Zh, Kw, lam, fa_pi, ND, dD)
 N0 = np.ma.masked_array(N0, N0 <= -100)
-
 print N0
 
 
@@ -309,8 +304,8 @@ Dt_meas = nthMoment(D_meas, ND_meas, dD_meas, 0)
 Dm_meas = Dm(D_meas, ND_meas, dD)
 
 # repeat for the retrieved data from the radar
-#a = (N0 * (D**mu).T).T
-ND = N0 * np.exp(-Lambda * D)
+a = np.exp(-Lambda * D)
+ND = (N0 * a.T ).T
 v = -0.1021 + 4.932*D- 0.9551*D**2 + 0.07934*D**3 - 0.002362*D**4
 R_retr = RainRate(D, ND, v, dD)
 Dt_retr = nthMoment(D, ND, dD, 0)
@@ -322,6 +317,7 @@ fig = plt.figure(figsize=(15,9));
 ax = plt.axes()
 ax.plot(Dt_meas[koun_t])
 ax.plot(Dt_retr)
+ax.set_yscale('log')
 ax.legend(["meas", 'retr'])
 ax.set_title("Total Number Concentration")
 ax.set_xlabel("t")
@@ -340,30 +336,9 @@ plt.savefig("2-R.png")
 
 fig = plt.figure(figsize=(15,9));
 ax = plt.axes()
-ax.plot(ND_meas[koun_t])
-#ax.plot(ND)
-ax.legend(["meas", 'retr'])
-ax.set_title("N(D)")
-ax.set_xlabel("t")
-ax.set_ylabel("")
-plt.savefig("2-ND.png")
-
-fig = plt.figure(figsize=(15,9));
-ax = plt.axes()
-ax.plot(ND)
-#ax.plot(ND)
-ax.legend(["meas", 'retr'])
-ax.set_title("N(D)")
-ax.set_xlabel("t")
-ax.set_ylabel("")
-plt.savefig("2-ND_ret.png")
-
-fig = plt.figure(figsize=(15,9));
-ax = plt.axes()
 ax.plot(Dm_meas[koun_t])
 ax.plot(Dm_retr)
-ax.plot((mu1d+4)/Lambda1d)
-ax.legend(["meas", 'retr', '$\mu$ * 4 / lambda method'])
+ax.legend(["meas", 'retr'])
 ax.set_title("mean volume diameter")
 ax.set_xlabel("t")
 ax.set_ylabel("$D_m$ (mm)")
