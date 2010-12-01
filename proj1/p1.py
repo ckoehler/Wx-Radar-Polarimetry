@@ -297,7 +297,7 @@ x = t0 + np.arange(comp_meas_Zh.shape[0])*delta_t
 fig = plt.figure(figsize=(15,9));
 ax = fig.add_subplot(2,1,1)
 ax.plot(x, koun_Zh)
-ax.plot(x, comp_meas_Zh)
+ax.plot(x, 10*np.log10(comp_meas_Zh))
 ax.set_title("$Z_h$ from KOUN")
 ax.set_ylabel(r'dBZ')
 ax.legend(['KOUN', 'DSD'], loc='upper right')
